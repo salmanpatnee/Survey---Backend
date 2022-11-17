@@ -13,11 +13,6 @@ class Survey extends Model
 
     protected $fillable = ['user_id', 'title', 'image', 'slug', 'status', 'description', 'expire_date'];
 
-    public function getSlugOptions(): SlugOptions
-    {
-        return SlugOptions::create()->generateSlugsFrom('title')->saveSlugsTo('slug');
-    }
-
     /**
      * The attributes that should be cast.
      *
@@ -26,6 +21,11 @@ class Survey extends Model
     protected $casts = [
         'status' => 'boolean',
     ];
+
+    public function getSlugOptions(): SlugOptions
+    {
+        return SlugOptions::create()->generateSlugsFrom('title')->saveSlugsTo('slug');
+    }
 
     public function questions()
     {

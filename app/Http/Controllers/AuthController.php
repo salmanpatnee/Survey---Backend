@@ -6,6 +6,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rules\Password;
+use Symfony\Component\HttpFoundation\Response;
 
 class AuthController extends Controller
 {
@@ -25,20 +26,20 @@ class AuthController extends Controller
 
     public function login(Request $request)
     {
-        $credentials = $request->validate([
+        $attributes = $request->validate([
             'email' => 'required|email|string|exists:users,email',
             'password' => ['required'], 
             'remember' => 'boolean'
         ]);
 
-        $remember = $credentials['remember'] ?? false;
+        $remember = $attributes['remember'] ?? false;
 
-        unset($credentials['remember']);
+        unset($attributes['remember']);
 
-        if(!Auth::attempt($credentials, $remember)) {
+        if(!Auth::attempt($attributes, $remember)) {
             return response([
                 'error' => 'The provided credentials do not match.'
-            ], 422);
+            ], Response::HTTP_UNAUTHORIZED);
         }
 
         $user = Auth::user();

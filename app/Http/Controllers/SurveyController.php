@@ -27,7 +27,10 @@ class SurveyController extends Controller
     public function index(Request $request)
     {
         $user = $request->user();
-        return SurveyResource::collection(Survey::where('user_id', $user->id)->withCount(['questions', 'answers'])->paginate(10));
+
+        return SurveyResource::collection(Survey::where('user_id', $user->id)
+            ->withCount(['questions', 'answers'])
+            ->paginate(10));
     }
 
     /**
@@ -68,50 +71,16 @@ class SurveyController extends Controller
     public function show(Survey $survey, Request $request)
     {
         $user = $request->user();
+
         if ($user->id !== $survey->user_id) {
             return abort(403, "Unauthorized action");
         }
+
         $survey->questions;
+
         return new SurveyResource($survey);
     }
 
-
-    public function showForGuest(Survey $survey)
-    {
-        $survey->questions;
-        return new SurveyResource($survey);
-    }
-
-
-    public function storeAnswers(StoreSurveyAnswerRequest $request, Survey $survey)
-    {
-        $attributes = $request->validated();
-
-        $surveyAnswer = SurveyAnswer::create([
-            'survey_id' => $survey->id,
-            'start_date' => date('Y-m-d H:i:s'),
-            'end_date' => date('Y-m-d H:i:s'),
-        ]);
-
-
-        foreach ($attributes['answers'] as $questionId => $answer) {
-            $question = SurveyQuestion::where(['id' => $questionId, 'survey_id' => $survey->id])->get();
-
-            if (!$question) {
-                return response("Invalid question id", 404);
-            }
-
-            $data = [
-                'survey_question_id' => $questionId,
-                'survey_answer_id' => $surveyAnswer->id,
-                'answer' => is_array($answer) ? json_encode($answer) : $answer
-            ];
-
-            SurveyQuestionAnswer::create($data);
-        }
-
-        return response("", 201);
-    }
 
     /**
      * Update the specified resource in storage.
@@ -143,10 +112,10 @@ class SurveyController extends Controller
         //New question ids.
         $newQuestionIds = Arr::pluck($attributes['questions'], 'id');
 
-        //Going to delete question ids.
+        //To be delete question ids.
         $toDelete = array_diff($existingQuestionIds, $newQuestionIds);
 
-        //Going to add question ids.
+        //To be add question ids.
         $toAdd = array_diff($newQuestionIds, $existingQuestionIds);
 
         SurveyQuestion::destroy($toDelete);
@@ -179,14 +148,52 @@ class SurveyController extends Controller
     public function destroy(Survey $survey, Request $request)
     {
         $user = $request->user();
+
         if ($user->id !== $survey->user_id) {
             return abort(403, "Unauthorized action");
         }
 
         $survey->delete();
+
         File::delete(public_path($survey->image));
 
         return response('', 204);
+    }
+
+    public function showForGuest(Survey $survey)
+    {
+        $survey->questions;
+        return new SurveyResource($survey);
+    }
+
+    public function storeAnswers(StoreSurveyAnswerRequest $request, Survey $survey)
+    {
+        $attributes = $request->validated();
+
+        $surveyAnswer = SurveyAnswer::create([
+            'survey_id' => $survey->id,
+            'start_date' => date('Y-m-d H:i:s'),
+            'end_date' => date('Y-m-d H:i:s'),
+        ]);
+
+
+        foreach ($attributes['answers'] as $questionId => $answer) {
+            $question = SurveyQuestion::where(['id' => $questionId, 'survey_id' => $survey->id])->get();
+
+            if (!$question) {
+                return response("Invalid question id", 404);
+            }
+
+            $data = [
+                'survey_question_id' => $questionId,
+                'survey_answer_id' => $surveyAnswer->id,
+                'answer' => is_array($answer) ? json_encode($answer) : $answer
+            ];
+
+            SurveyQuestionAnswer::create($data);
+        }
+
+        return response("", 201);
     }
 
     private function createQuestion($question)
